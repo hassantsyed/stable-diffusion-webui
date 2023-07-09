@@ -25,9 +25,11 @@ def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=Fal
         is_inpaint_batch = bool(inpaint_masks)
 
         if is_inpaint_batch:
-            print(f"\nInpaint batch is enabled. {len(inpaint_masks)} masks found.")
+            print(
+                f"\nInpaint batch is enabled. {len(inpaint_masks)} masks found.")
 
-    print(f"Will process {len(images)} images, creating {p.n_iter * p.batch_size} new images for each.")
+    print(
+        f"Will process {len(images)} images, creating {p.n_iter * p.batch_size} new images for each.")
 
     save_normally = output_dir == ''
 
@@ -69,7 +71,8 @@ def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=Fal
                 masks_found = list(mask_image_dir.glob(f"{image_path.stem}.*"))
 
                 if len(masks_found) == 0:
-                    print(f"Warning: mask is not found for {image_path} in {mask_image_dir}. Skipping it.")
+                    print(
+                        f"Warning: mask is not found for {image_path} in {mask_image_dir}. Skipping it.")
                     continue
 
                 # it should contain only 1 matching mask
@@ -110,8 +113,10 @@ def img2img(id_task: str, mode: int, prompt: str, negative_prompt: str, prompt_s
         mask = None
     elif mode == 2:  # inpaint
         image, mask = init_img_with_mask["image"], init_img_with_mask["mask"]
-        alpha_mask = ImageOps.invert(image.split()[-1]).convert('L').point(lambda x: 255 if x > 0 else 0, mode='1')
-        mask = mask.convert('L').point(lambda x: 255 if x > 128 else 0, mode='1')
+        alpha_mask = ImageOps.invert(
+            image.split()[-1]).convert('L').point(lambda x: 255 if x > 0 else 0, mode='1')
+        mask = mask.convert('L').point(
+            lambda x: 255 if x > 128 else 0, mode='1')
         mask = ImageChops.lighter(alpha_mask, mask).convert('L')
         image = image.convert("RGB")
     elif mode == 3:  # inpaint sketch
@@ -141,7 +146,37 @@ def img2img(id_task: str, mode: int, prompt: str, negative_prompt: str, prompt_s
         height = int(image.height * scale_by)
 
     assert 0. <= denoising_strength <= 1., 'can only work with strength in [0.0, 1.0]'
-
+    print({
+        "promt": prompt,
+        "negativePrompt": negative_prompt,
+        "styles": prompt_styles,
+        "seed": seed,
+        "subseed": subseed,
+        "subseed_str": subseed_strength,
+        "seed_resize_from_h": seed_resize_from_h,
+        "seed_resize_from_w": seed_resize_from_w,
+        "seed_enable_extras": seed_enable_extras,
+        "sampler_name": sd_samplers.samplers_for_img2img[sampler_index].name,
+        "batch_size": batch_size,
+        "n_iter": n_iter,
+        "steps": steps,
+        "cfg_scale": cfg_scale,
+        "width": width,
+        "height": height,
+        "restore_faces": restore_faces,
+        "tiling": tiling,
+        # "init_images"=[image],
+        "mask": mask,
+        "mask_blur": mask_blur,
+        "inpainting_fill": inpainting_fill,
+        "resize_mode": resize_mode,
+        "denoising_strength": denoising_strength,
+        "image_cfg_scale": image_cfg_scale,
+        "inpaint_full_res": inpaint_full_res,
+        "inpaint_full_res_padding": inpaint_full_res_padding,
+        "inpainting_mask_invert": inpainting_mask_invert,
+        "override_settings": override_settings,
+    })
     p = StableDiffusionProcessingImg2Img(
         sd_model=shared.sd_model,
         outpath_samples=opts.outdir_samples or opts.outdir_img2img_samples,
@@ -189,7 +224,8 @@ def img2img(id_task: str, mode: int, prompt: str, negative_prompt: str, prompt_s
     if is_batch:
         assert not shared.cmd_opts.hide_ui_dir_config, "Launched with --hide-ui-dir-config, batch img2img disabled"
 
-        process_batch(p, img2img_batch_input_dir, img2img_batch_output_dir, img2img_batch_inpaint_mask_dir, args, to_scale=selected_scale_tab == 1, scale_by=scale_by)
+        process_batch(p, img2img_batch_input_dir, img2img_batch_output_dir,
+                      img2img_batch_inpaint_mask_dir, args, to_scale=selected_scale_tab == 1, scale_by=scale_by)
 
         processed = Processed(p, [], p.seed, "")
     else:
