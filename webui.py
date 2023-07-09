@@ -1,4 +1,27 @@
 from __future__ import annotations
+import modules.hypernetworks.hypernetwork
+from modules.shared import cmd_opts
+from modules import modelloader
+import modules.ui
+import modules.progress
+import modules.textual_inversion.textual_inversion
+import modules.script_callbacks
+import modules.txt2img
+import modules.sd_unet
+import modules.sd_vae
+import modules.sd_models
+import modules.sd_hijack_optimizations
+import modules.sd_hijack
+import modules.scripts
+import modules.lowvram
+import modules.img2img
+import modules.gfpgan_model as gfpgan
+import modules.face_restoration
+import modules.codeformer_model as codeformer
+from modules import shared, sd_samplers, upscaler, extensions, localization, ui_tempdir, ui_extra_networks, config_states
+from modules import extra_networks
+import gradio
+import torch
 
 import os
 import sys
@@ -18,27 +41,27 @@ from packaging import version
 
 import logging
 
-logging.getLogger("xformers").addFilter(lambda record: 'A matching Triton is not available' not in record.getMessage())
+logging.getLogger("xformers").addFilter(
+    lambda record: 'A matching Triton is not available' not in record.getMessage())
 
 from modules import paths, timer, import_hook, errors, devices  # noqa: F401
 
 startup_timer = timer.startup_timer
 
-import torch
 import pytorch_lightning   # noqa: F401 # pytorch_lightning should be imported after torch, but it re-enables warnings on import so import once to disable them
-warnings.filterwarnings(action="ignore", category=DeprecationWarning, module="pytorch_lightning")
-warnings.filterwarnings(action="ignore", category=UserWarning, module="torchvision")
+warnings.filterwarnings(
+    action="ignore", category=DeprecationWarning, module="pytorch_lightning")
+warnings.filterwarnings(
+    action="ignore", category=UserWarning, module="torchvision")
 
 
 startup_timer.record("import torch")
 
-import gradio
 startup_timer.record("import gradio")
 
 import ldm.modules.encoders.modules  # noqa: F401
 startup_timer.record("import ldm")
 
-from modules import extra_networks
 from modules.call_queue import wrap_gradio_gpu_call, wrap_queued_call, queue_lock  # noqa: F401
 
 # Truncate version number of nightly/local build of PyTorch to not cause exceptions with CodeFormer or Safetensors
@@ -46,28 +69,6 @@ if ".dev" in torch.__version__ or "+git" in torch.__version__:
     torch.__long_version__ = torch.__version__
     torch.__version__ = re.search(r'[\d.]+[\d]', torch.__version__).group(0)
 
-from modules import shared, sd_samplers, upscaler, extensions, localization, ui_tempdir, ui_extra_networks, config_states
-import modules.codeformer_model as codeformer
-import modules.face_restoration
-import modules.gfpgan_model as gfpgan
-import modules.img2img
-
-import modules.lowvram
-import modules.scripts
-import modules.sd_hijack
-import modules.sd_hijack_optimizations
-import modules.sd_models
-import modules.sd_vae
-import modules.sd_unet
-import modules.txt2img
-import modules.script_callbacks
-import modules.textual_inversion.textual_inversion
-import modules.progress
-
-import modules.ui
-from modules import modelloader
-from modules.shared import cmd_opts
-import modules.hypernetworks.hypernetwork
 
 startup_timer.record("other imports")
 
@@ -158,7 +159,8 @@ def restore_config_state_file():
     shared.opts.save(shared.config_filename)
 
     if os.path.isfile(config_state_file):
-        print(f"*** About to restore extension state from file: {config_state_file}")
+        print(
+            f"*** About to restore extension state from file: {config_state_file}")
         with open(config_state_file, "r", encoding="utf-8") as f:
             config_state = json.load(f)
             config_states.restore_extension_config(config_state)
@@ -223,12 +225,16 @@ def configure_sigint_handler():
 
 
 def configure_opts_onchange():
-    shared.opts.onchange("sd_model_checkpoint", wrap_queued_call(lambda: modules.sd_models.reload_model_weights()), call=False)
-    shared.opts.onchange("sd_vae", wrap_queued_call(lambda: modules.sd_vae.reload_vae_weights()), call=False)
-    shared.opts.onchange("sd_vae_as_default", wrap_queued_call(lambda: modules.sd_vae.reload_vae_weights()), call=False)
+    shared.opts.onchange("sd_model_checkpoint", wrap_queued_call(
+        lambda: modules.sd_models.reload_model_weights()), call=False)
+    shared.opts.onchange("sd_vae", wrap_queued_call(
+        lambda: modules.sd_vae.reload_vae_weights()), call=False)
+    shared.opts.onchange("sd_vae_as_default", wrap_queued_call(
+        lambda: modules.sd_vae.reload_vae_weights()), call=False)
     shared.opts.onchange("temp_dir", ui_tempdir.on_tmpdir_changed)
     shared.opts.onchange("gradio_theme", shared.reload_gradio_theme)
-    shared.opts.onchange("cross_attention_optimization", wrap_queued_call(lambda: modules.sd_hijack.model_hijack.redo_hijack(shared.sd_model)), call=False)
+    shared.opts.onchange("cross_attention_optimization", wrap_queued_call(
+        lambda: modules.sd_hijack.model_hijack.redo_hijack(shared.sd_model)), call=False)
     startup_timer.record("opts onchange")
 
 
@@ -288,7 +294,8 @@ def initialize_rest(*, reload_script_modules=False):
     modules.textual_inversion.textual_inversion.list_textual_inversion_templates()
     startup_timer.record("refresh textual inversion templates")
 
-    modules.script_callbacks.on_list_optimizers(modules.sd_hijack_optimizations.list_optimizers)
+    modules.script_callbacks.on_list_optimizers(
+        modules.sd_hijack_optimizations.list_optimizers)
     modules.sd_hijack.list_optimizers()
     startup_timer.record("scripts list_optimizers")
 
@@ -324,7 +331,8 @@ def initialize_rest(*, reload_script_modules=False):
 
 
 def setup_middleware(app):
-    app.middleware_stack = None  # reset current middleware to allow modifying user provided list
+    # reset current middleware to allow modifying user provided list
+    app.middleware_stack = None
     app.add_middleware(GZipMiddleware, minimum_size=1000)
     configure_cors_middleware(app)
     app.build_middleware_stack()  # rebuild middleware stack on-the-fly
@@ -359,7 +367,8 @@ def api_only():
     modules.script_callbacks.app_started_callback(None, app)
 
     print(f"Startup time: {startup_timer.summary()}.")
-    api.launch(server_name="0.0.0.0" if cmd_opts.listen else "127.0.0.1", port=cmd_opts.port if cmd_opts.port else 7861)
+    api.launch(server_name="0.0.0.0" if cmd_opts.listen else "127.0.0.1",
+               port=cmd_opts.port if cmd_opts.port else 7861)
 
 
 def stop_route(request):
@@ -387,6 +396,7 @@ def webui():
 
         gradio_auth_creds = list(get_gradio_auth_creds()) or None
 
+        print(cmd_opts.port)
         app, local_url, share_url = shared.demo.launch(
             share=cmd_opts.share,
             server_name=server_name,
@@ -396,7 +406,8 @@ def webui():
             ssl_verify=cmd_opts.disable_tls_verify,
             debug=cmd_opts.gradio_debug,
             auth=gradio_auth_creds,
-            inbrowser=cmd_opts.autolaunch and os.getenv('SD_WEBUI_RESTARTING ') != '1',
+            inbrowser=cmd_opts.autolaunch and os.getenv(
+                'SD_WEBUI_RESTARTING ') != '1',
             prevent_thread_lock=True,
             allowed_paths=cmd_opts.gradio_allowed_path,
             app_kwargs={
@@ -404,6 +415,8 @@ def webui():
                 "redoc_url": "/redoc",
             },
         )
+        print(local_url)
+        print(share_url)
         if cmd_opts.add_stop_route:
             app.add_route("/_stop", stop_route, methods=["POST"])
 
@@ -416,7 +429,8 @@ def webui():
         # an attacker to trick the user into opening a malicious HTML page, which makes a request to the
         # running web ui and do whatever the attacker wants, including installing an extension and
         # running its code. We disable this here. Suggested by RyotaK.
-        app.user_middleware = [x for x in app.user_middleware if x.cls.__name__ != 'CORSMiddleware']
+        app.user_middleware = [
+            x for x in app.user_middleware if x.cls.__name__ != 'CORSMiddleware']
 
         setup_middleware(app)
 
@@ -439,11 +453,13 @@ def webui():
         if cmd_opts.subpath:
             redirector = FastAPI()
             redirector.get("/")
-            gradio.mount_gradio_app(redirector, shared.demo, path=f"/{cmd_opts.subpath}")
+            gradio.mount_gradio_app(
+                redirector, shared.demo, path=f"/{cmd_opts.subpath}")
 
         try:
             while True:
-                server_command = shared.state.wait_for_server_command(timeout=5)
+                server_command = shared.state.wait_for_server_command(
+                    timeout=5)
                 if server_command:
                     if server_command in ("stop", "restart"):
                         break
