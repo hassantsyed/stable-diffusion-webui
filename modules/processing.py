@@ -1251,6 +1251,8 @@ class StableDiffusionProcessingTxt2Img(StableDiffusionProcessing):
 
 def dump_kwargs(**kwargs):
     for key, value in kwargs.items():
+        if key == "sd_model":
+            continue
         print(f"{key} : {value}")
 
 
