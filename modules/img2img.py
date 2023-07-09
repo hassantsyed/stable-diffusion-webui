@@ -15,6 +15,17 @@ import modules.scripts
 
 
 def process_batch(p, input_dir, output_dir, inpaint_mask_dir, args, to_scale=False, scale_by=1.0):
+    print("START: PROCESS BATCH")
+    print({
+        "input_dir": input_dir,
+        "output_dir": output_dir,
+        "inpaint_mask_dir": inpaint_mask_dir,
+        "to_scale": to_scale,
+        "scale_by": scale_by
+    })
+    print("END: PROCESS BATCH")
+
+    print(args)
     processing.fix_seed(p)
 
     images = shared.listfiles(input_dir)
